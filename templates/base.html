@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}医疗智能问答系统{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="{% url 'home' %}" class="nav-logo">
+                <span>医疗智能问答系统</span>
+            </a>
+            <button class="nav-toggle" aria-label="切换导航菜单">
+                <svg width="24" height="24" viewBox="0 0 24 24">
+                    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                </svg>
+            </button>
+            <ul class="nav-links">
+                <li><a href="{% url 'home' %}" class="{% if request.path == '/' %}active{% endif %}">首页</a></li>
+                <li><a href="{% url 'chat' %}" class="{% if 'chat' in request.path %}active{% endif %}">智能问答</a></li>
+                <li><a href="{% url 'document_analysis' %}" class="{% if 'document-analysis' in request.path %}active{% endif %}">文档分析</a></li>
+                <li><a href="{% url 'about' %}" class="{% if 'about' in request.path %}active{% endif %}">关于系统</a></li>
+            </ul>
+        </div>
+    </nav>
+
+        <main>
+            {% block content %}
+            {% endblock %}
+        </main>
+
+        <footer>
+            <p>&copy; 2024 医疗智能问答系统. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="{% static 'js/nav.js' %}"></script>
+    <script src="{% static 'js/main.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
