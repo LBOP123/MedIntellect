@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+
+{% block title %}关于系统 - 医疗智能问答系统{% endblock %}
+
+{% block content %}
+<div class="about-container">
+    <section class="about-section">
+        <h2>关于医疗智能问答系统</h2>
+        <p>医疗智能问答系统是一个基于人工智能技术的医疗咨询和文档分析平台。系统整合了自然语言处理、机器学习等先进技术，为用户提供准确、及时的医疗信息服务。</p>
+    </section>
+
+    <section class="features-section">
+        <h2>核心功能</h2>
+        <div class="features-list">
+            <div class="feature-item">
+                <h3>智能问答</h3>
+                <ul>
+                    <li>基于深度学习的问题理解</li>
+                    <li>智能答案检索与推理</li>
+                    <li>多轮对话支持</li>
+                </ul>
+            </div>
+
+            <div class="feature-item">
+                <h3>文档分析</h3>
+                <ul>
+                    <li>多格式文档支持</li>
+                    <li>智能文本分析</li>
+                    <li>布局识别与分析</li>
+                    <li>文档摘要生成</li>
+                </ul>
+            </div>
+
+            <div class="feature-item">
+                <h3>数据处理</h3>
+                <ul>
+                    <li>批量文本处理</li>
+                    <li>文本聚类分析</li>
+                    <li>可视化展示</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section class="tech-section">
+        <h2>技术架构</h2>
+        <div class="tech-stack">
+            <div class="tech-category">
+                <h3>前端技术</h3>
+                <ul>
+                    <li>HTML5</li>
+                    <li>CSS3</li>
+                    <li>JavaScript</li>
+                </ul>
+            </div>
+
+            <div class="tech-category">
+                <h3>后端技术</h3>
+                <ul>
+                    <li>Django</li>
+                    <li>Python</li>
+                    <li>MySQL</li>
+                    <li>Elasticsearch</li>
+                </ul>
+            </div>
+
+            <div class="tech-category">
+                <h3>AI技术</h3>
+                <ul>
+                    <li>自然语言处理</li>
+                    <li>深度学习</li>
+                    <li>机器学习</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section class="data-section">
+        <h2>数据来源</h2>
+        <p>系统的问答数据来源于多个医疗领域，包括：</p>
+        <ul class="data-sources">
+            <li>内科</li>
+            <li>外科</li>
+            <li>妇产科</li>
+            <li>儿科</li>
+            <li>男科</li>
+            <li>肿瘤科</li>
+        </ul>
+    </section>
+</div>
+
+<style>
+    .about-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .about-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .features-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        margin: 2rem 0;
+    }
+
+    .feature-item {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .feature-item ul {
+        list-style-type: none;
+        padding-left: 0;
+    }
+
+    .feature-item li {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .feature-item li:last-child {
+        border-bottom: none;
+    }
+
+    .tech-stack {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        margin: 2rem 0;
+    }
+
+    .tech-category {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .tech-category ul {
+        list-style-type: none;
+        padding-left: 0;
+    }
+
+    .tech-category li {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .tech-category li:last-child {
+        border-bottom: none;
+    }
+
+    .data-sources {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        list-style-type: none;
+        padding: 0;
+        margin: 1rem 0;
+    }
+
+    .data-sources li {
+        background: white;
+        padding: 1rem;
+        border-radius: 5px;
+        text-align: center;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    @media (max-width: 768px) {
+        .about-container {
+            padding: 1rem;
+        }
+
+        .features-list,
+        .tech-stack {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
