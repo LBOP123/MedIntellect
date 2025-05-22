@@ -36,12 +36,29 @@ MedIntellect是一个基于Django框架开发的医疗智能问答系统，集�
 git clone https://github.com/你的用户名/MedIntellect.git
 cd MedIntellect
 ```
-3. 创建虚拟环境
-4. 安装依赖
-5. 初始化数据库
-6. 创建超级用户（可选）
-7. 运行开发服务器
-8. 访问系统
+2. 创建虚拟环境
+```
+python -m venv venv
+.\venv\Scripts\activate
+```
+3. 安装依赖
+```
+pip install -r requirements.txt
+```
+6. 初始化数据库
+```
+python manage.py makemigrations
+python manage.py migrate
+```
+8. 创建超级用户（可选）
+```
+python manage.py createsuperuser
+```
+9. 运行开发服务器
+```
+python manage.py runserver
+```
+11. 访问系统
 - 打开浏览器访问： http://127.0.0.1:8000
 - 管理后台： http://127.0.0.1:8000/admin
 ## 使用说明
