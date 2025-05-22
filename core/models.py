@@ -35,7 +35,7 @@ class Document(models.Model):
     keywords = models.TextField('关键词', blank=True)
     entities = models.TextField('实体识别结果', blank=True)
     pos_tags = models.TextField('词性标注结果', blank=True)
-    layout_analysis = models.TextField('布局分析结果', blank=True)
+
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
 
     class Meta:

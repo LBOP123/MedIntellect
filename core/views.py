@@ -6,6 +6,8 @@ import json
 import jieba
 import jieba.analyse
 import pandas as pd
+from django.db.models import Q
+from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.manifold import TSNE
 from wordcloud import WordCloud
@@ -14,7 +16,6 @@ import io
 import base64
 from PIL import Image
 import numpy as np
-from matplotlib import colors
 import matplotlib
 matplotlib.use('Agg') 
 
@@ -52,9 +53,31 @@ def chat_api(request):
     try:
         data = json.loads(request.body)
         question = data.get('message', '')
+        
+        # 判断操作类型
+        op_type = 'normal'  # 默认为普通问答
+        if '词性标注' in question:
+            op_type = 'pos'
+            question = question.replace('词性标注', '').strip()
+        elif '实体识别' in question:
+            op_type = 'entity'
+            question = question.replace('实体识别', '').strip()
+        elif '文本摘要' in question:
+            op_type = 'summary'
+            question = question.replace('文本摘要', '').strip()
+        elif '文本分析' in question:
+            op_type = 'analysis'
+            question = question.replace('文本分析', '').strip()
 
-        # 使用jieba分词提取关键词
-        keywords = jieba.analyse.extract_tags(question, topK=5)
+        # 初始化数据处理器
+        from .data_processor import DataProcessor
+        processor = DataProcessor()
+
+        # 对问题进行预处理（分词、去停用词）
+        processed_text = processor.process_text(question)
+        
+        # 提取关键词（已去除停用词）
+        keywords = processor.extract_keywords(question, topK=5)
 
         # 词性标注
         pos_tags = []
@@ -104,25 +127,51 @@ def chat_api(request):
         # 生成文档摘要（这里使用关键词组合作为简单摘要）
         summary = '。'.join([kw for kw in keywords])
 
-        # 根据关键词搜索相关问答
-        qa_results = MedicalQA.objects.filter(
-            keywords__contains=keywords[0] if keywords else ''
-        ).order_by('-created_at')[:5]
-
-        if qa_results:
-            response = qa_results[0].answer
+        # 获取所有问答数据用于构建索引
+        all_qa = MedicalQA.objects.all()
+        questions = [qa.question for qa in all_qa]
+        
+        # 构建问题索引
+        tfidf_matrix = processor.build_index(questions)
+        
+        # 搜索相似问题
+        if tfidf_matrix is not None:
+            top_indices, similarities = processor.search_similar(question, tfidf_matrix)
+            if len(top_indices) > 0:
+                qa_results = all_qa[int(top_indices[0])]
+                response = qa_results.answer
+            else:
+                response = "抱歉，我暂时无法回答这个问题。"
         else:
-            response = "抱歉，我暂时无法回答这个问题。"
+            query = Q()
+            matched_keywords = 0
+            for keyword in keywords:
+                query |= Q(keywords__contains=keyword)
+                matched_keywords += 1
+                if matched_keywords >= 3:
+                    break
+
+            qa_results = MedicalQA.objects.filter(query).order_by('-created_at').first()
+            response = qa_results.answer if qa_results else "抱歉，我暂时无法回答这个问题。"
+
+        # 根据操作类型返回不同的结果
+        text_analysis = {}
+        if op_type == 'pos':
+            text_analysis['pos_tagging'] = ' '.join(pos_result)
+        elif op_type == 'entity':
+            text_analysis['entity_tagging'] = ' '.join(entity_result)
+        elif op_type == 'summary':
+            text_analysis['summary'] = summary
+        elif op_type == 'analysis':
+            text_analysis['pos_tagging'] = ' '.join(pos_result)
+            text_analysis['entity_tagging'] = ' '.join(entity_result)
+            text_analysis['summary'] = summary
 
         return JsonResponse({
             'response': response,
             'results': {
-                'text_analysis': {
-                    'pos_tagging': ' '.join(pos_result),
-                    'named_entities': '、'.join(entities),
-                    'entity_tagging': ' '.join(entity_result),
-                    'summary': summary
-                }
+                'op_type': op_type,
+                'text_analysis': text_analysis
             }
         })
 
@@ -268,30 +317,56 @@ def upload_file(request):
         keywords = jieba.analyse.extract_tags(content, topK=10)
 
         # 词性标注（添加颜色样式）
-        import jieba.posseg as pseg
+        # import jieba.posseg as pseg
         pos_tags = []
         pos_colors = {
-            'n': '#e57373',   # 名词：红色
-            'v': '#4caf50',   # 动词：绿色
-            'a': '#2196f3',   # 形容词：蓝色
-            'd': '#ff9800',   # 副词：橙色
-            'r': '#9c27b0',   # 代词：紫色
-            'm': '#795548',   # 数词：棕色
-            'q': '#607d8b',   # 量词：灰色
-            'p': '#795548',   # 介词：棕色
-            'c': '#9e9e9e',   # 连词：灰色
-            'u': '#757575',   # 助词：深灰色
-            'w': '#000000',   # 标点：黑色
+            'n': '#ff6b6b',   # 名词-红色
+            'v': '#51cf66',   # 动词-绿色
+            'a': '#339af0',   # 形容词-蓝色
+            'd': '#ffd43b',   # 副词-黄色
+            'r': '#845ef7',   # 代词-紫色
+            'm': '#a8701a',   # 数词-棕色
+            'q': '#868e96',   # 量词-灰色
+            'p': '#a8701a',   # 介词-棕色
+            'c': '#868e96',   # 连词-灰色
+            'u': '#495057',   # 助词-深灰色
+            'w': '#212529'    # 标点-黑色
         }
-        for word, flag in pseg.cut(content):
-            color = pos_colors.get(flag[0], '#000000')  # 默认黑色
+        for word, flag in jieba.posseg.cut(content):
+            color = pos_colors.get(flag[0], '#212529')  # 默认黑色
             pos_tags.append(f'<span style="color: {color}" title="{flag}">{word}</span>')
+
+        # 医疗实体规则和颜色映射
+        medical_rules = {
+            'disease': {'keywords': ['病', '症', '炎', '癌', '瘤'], 'color': '#ff6b6b'},      # 疾病-红色
+            'symptom': {'keywords': ['痛', '胀', '肿', '痒', '咳', '喘', '麻', '晕'], 'color': '#51cf66'},  # 症状-绿色
+            'medicine': {'keywords': ['药', '素', '剂', '丸', '片'], 'color': '#339af0'},    # 药品-蓝色
+            'organ': {'keywords': ['胃', '肝', '肺', '肾', '心', '脑', '血'], 'color': '#ffd43b'},     # 器官-黄色
+            'treatment': {'keywords': ['手术', '治疗', '化疗', '放疗', '用药'], 'color': '#845ef7'}, # 治疗-紫色
+            'department': {'keywords': ['科', '医院', '诊所', '中心'], 'color': '#a8701a'},   # 科室-棕色
+            'test': {'keywords': ['检查', '化验', 'CT', 'MRI', '超声'], 'color': '#868e96'}    # 检查-灰色
+        }
+
+        # 实体识别
+        entities = []
+        for word, flag in jieba.posseg.cut(content):
+            entity_type = None
+            for type_name, rule in medical_rules.items():
+                if any(kw in word for kw in rule['keywords']):
+                    entity_type = type_name
+                    entities.append(f'<span style="color: {rule["color"]}" title="{type_name}">{word}</span>')
+                    break
+            if not entity_type:
+                entities.append(word)
+
+        # 生成文档摘要（这里使用关键词组合作为简单摘要）
+        summary = '。'.join([kw for kw in keywords])
 
         # 文本分析结果
         text_analysis = {
-            'pos_tagging': ' '.join(pos_tags[:50]),
-            'named_entities': ' '.join(keywords),
-            'summary': content[:200] + '...' if len(content) > 200 else content
+            'pos_tagging': ' '.join(pos_tags),
+            'named_entities': ' '.join(entities),
+            'summary': summary
         }
 
         # 更新系统统计
@@ -312,6 +387,12 @@ def upload_file(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+# 创建一个临时文件
+import tempfile
+import zipfile
+import os
+from django.http import FileResponse
+
 @csrf_exempt
 def download_results(request):
     """下载分析结果API接口"""
@@ -324,11 +405,6 @@ def download_results(request):
         if not latest_document:
             return JsonResponse({'error': '没有可下载的分析结果'}, status=404)
 
-        # 创建一个临时文件
-        import tempfile
-        import zipfile
-        import os
-        from django.http import FileResponse
 
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.zip')
         temp_file.close()
@@ -371,83 +447,3 @@ def download_results(request):
         return JsonResponse({'error': str(e)}, status=500)
 
         
-# @csrf_exempt
-# def chat_api(request):
-#     """聊天API接口"""
-#     if request.method != 'POST':
-#         return JsonResponse({'error': '只支持POST请求'}, status=405)
-
-#     try:
-#         data = json.loads(request.body)
-#         question = data.get('message', '')
-
-#         # 使用jieba分词提取关键词
-#         keywords = jieba.analyse.extract_tags(question, topK=5)
-
-#         # 医疗实体颜色映射
-#         medical_colors = {
-#             'disease': '#ff6b6b',    # 疾病-红色
-#             'symptom': '#51cf66',    # 症状-绿色
-#             'medicine': '#339af0',   # 药品-蓝色
-#             'organ': '#ffd43b',      # 器官-黄色
-#             'treatment': '#845ef7',  # 治疗-紫色
-#             'department': '#a8701a', # 科室-棕色
-#             'test': '#868e96',      # 检查-灰色
-#             'default': '#212529'     # 默认-黑色
-#         }
-
-#         # 医疗实体规则
-#         medical_rules = {
-#             'disease': ['病', '症', '炎', '癌', '瘤'],
-#             'symptom': ['痛', '胀', '肿', '痒', '咳', '喘', '麻', '晕'],
-#             'medicine': ['药', '素', '剂', '丸', '片'],
-#             'organ': ['胃', '肝', '肺', '肾', '心', '脑', '血'],
-#             'treatment': ['手术', '治疗', '化疗', '放疗', '用药'],
-#             'department': ['科', '医院', '诊所', '中心'],
-#             'test': ['检查', '化验', 'CT', 'MRI', '超声']
-#         }
-
-#         # 实体识别和颜色标注
-#         entities = []
-#         pos_result = []
-#         for word, flag in jieba.posseg.cut(question):
-#             entity_type = 'default'
-#             # 判断实体类型
-#             for type_name, keywords in medical_rules.items():
-#                 if any(kw in word for kw in keywords):
-#                     entity_type = type_name
-#                     entities.append(f'{word}({type_name})')
-#                     break
-            
-#             color = medical_colors.get(entity_type, medical_colors['default'])
-#             pos_result.append(f'<span style="color: {color}" title="{entity_type}">{word}</span>')
-
-#         # 实体识别（使用jieba词性标注中的名词作为实体）
-#         entities = [word for word, flag in jieba.posseg.cut(question) if flag.startswith('n')]
-
-#         # 生成文档摘要（这里使用关键词组合作为简单摘要）
-#         summary = '。'.join([kw for kw in keywords])
-
-#         # 根据关键词搜索相关问答
-#         qa_results = MedicalQA.objects.filter(
-#             keywords__contains=keywords[0] if keywords else ''
-#         ).order_by('-created_at')[:5]
-
-#         if qa_results:
-#             response = qa_results[0].answer
-#         else:
-#             response = "抱歉，我暂时无法回答这个问题。"
-
-#         return JsonResponse({
-#             'response': response,
-#             'results': {
-#                 'text_analysis': {
-#                     'pos_tagging': ' '.join(pos_result),
-#                     'named_entities': '、'.join(entities),
-#                     'summary': summary
-#                 }
-#             }
-#         })
-
-#     except Exception as e:
-#         return JsonResponse({'error': str(e)}, status=500)

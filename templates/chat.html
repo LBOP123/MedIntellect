@@ -17,10 +17,10 @@
 
     <div class="chat-input-container">
         <div class="chat-input-wrapper">
-            <textarea id="chat-input" placeholder="请输入您的问题..."></textarea>
+            <textarea id="chat-input" placeholder="请输入您的问题...&#10;提示词：1)词性标注：2)实体识别：3)文本摘要：4)文本分析："></textarea>
             <div class="chat-controls">
                 <input type="file" id="file-upload" accept=".txt,.doc,.docx,.pdf,.png,.jpg,.jpeg">
-                <label for="file-upload" class="upload-button" alt="上传文件" title="上传文件"></label>
+                <label for="file-upload" class="upload-button" title="上传文件"></label>
                 <button id="send-button" onclick="sendMessage()">发送</button>
             </div>
         </div>

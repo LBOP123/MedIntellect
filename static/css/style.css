@@ -260,7 +260,7 @@ position: relative;
     display: none;
 }
 
-.file-upload upload-button {
+.upload-button {
     display: inline-block;
     width: 24px;
     height: 24px;
@@ -464,6 +464,7 @@ position: relative;
 
 .pos-tagging-results,
 .named-entities-results,
+.ner-results,
 .summary-results {
     margin: 15px 0;
     padding: 15px;
@@ -588,26 +589,4 @@ position: relative;
 
 .analysis-results h4 i:hover {
     color: var(--primary-color);
-}
-
-/* 添加工具提示样式 */
-[title] {
-    position: relative;
-}
-
-[title]:hover::after {
-    content: attr(title);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 8px;
-    background-color: rgba(0, 0, 0, 0.8);
-    color: white;
-    border-radius: 4px;
-    font-size: 0.9em;
-    white-space: pre-line;
-    z-index: 1000;
-    min-width: 200px;
-    text-align: left;
 }

@@ -102,23 +102,33 @@ async function sendMessage() {
         // 显示文本分析结果
         if (data.results && data.results.text_analysis) {
             const resultsContainer = document.querySelector('.results-container');
-            resultsContainer.innerHTML = `
-                <div class="analysis-results">
-                    <h3>文本分析结果</h3>
-                    <div class="pos-tagging-results">
-                        <h4>词性标注 <i class="fas fa-info-circle" title="名词-红色&#10;动词-绿色&#10;形容词-蓝色&#10;副词-黄色&#10;代词-紫色&#10;数词-棕色&#10;量词-灰色&#10;介词-棕色&#10;连词-灰色&#10;助词-深灰色&#10;标点-黑色"></i></h4>
-                        <div class="result-content">${data.results.text_analysis.pos_tagging}</div>
-                    </div>
-                    <div class="named-entities-results">
-                        <h4>实体识别 <i class="fas fa-info-circle" title="疾病-红色&#10;症状-绿色&#10;药品-蓝色&#10;器官-黄色&#10;治疗-紫色&#10;科室-棕色&#10;检查-灰色"></i></h4>
-                        <div class="result-content">${data.results.text_analysis.entity_tagging}</div>
-                    </div>
-                    <div class="summary-results">
-                        <h4>文本摘要</h4>
-                        <div class="result-content">${data.results.text_analysis.summary}</div>
-                    </div>
-                </div>
-                        `;
+            let analysisHtml = '';
+            if (data.results.op_type !== 'normal') {
+                analysisHtml = '<div class="analysis-results"><h3>文本分析结果</h3>';
+            }
+            if ((data.results.op_type === 'pos' || data.results.op_type === 'analysis') && data.results.text_analysis.pos_tagging) {
+                analysisHtml += `<div class="pos-tagging-results">
+                                    <h4>词性标注 <i class="fas fa-info-circle" title="名词-红色&#10;动词-绿色&#10;形容词-蓝色&#10;副词-黄色&#10;代词-紫色&#10;数词-棕色&#10;量词-灰色&#10;介词-棕色&#10;连词-灰色&#10;助词-深灰色&#10;标点-黑色"></i></h4>
+                                    <div class="result-content">${data.results.text_analysis.pos_tagging}</div>
+                                </div>`;
+            }
+
+            if ((data.results.op_type === 'entity' || data.results.op_type === 'analysis') && data.results.text_analysis.entity_tagging) {
+                analysisHtml += `<div class="named-entities-results">
+                                    <h4>实体识别 <i class="fas fa-info-circle" title="疾病-红色&#10;症状-绿色&#10;药品-蓝色&#10;器官-黄色&#10;治疗-紫色&#10;科室-棕色&#10;检查-灰色"></i></h4>
+                                    <div class="result-content">${data.results.text_analysis.entity_tagging}</div>
+                                </div>`;
+            }
+
+            if ((data.results.op_type === 'summary' || data.results.op_type === 'analysis') && data.results.text_analysis.summary) {
+                analysisHtml += `<div class="summary-results">
+                                    <h4>文本摘要</h4>
+                                    <div class="result-content">${data.results.text_analysis.summary}</div>
+                                </div>`;
+            }
+
+            analysisHtml += '</div>';
+            resultsContainer.innerHTML = analysisHtml;
         }
     } catch (error) {
         console.error('Error:', error);
@@ -163,21 +173,25 @@ function displayResults(results) {
     const resultsContainer = document.querySelector('.results-container');
     resultsContainer.innerHTML = '';
 
-    // 添加标题
-    const title = document.createElement('h2');
-    title.textContent = '分析结果';
-    resultsContainer.appendChild(title);
-
     // 显示文本分析结果
     if (results.text_analysis) {
-        const textResults = document.createElement('div');
-        textResults.innerHTML = `
-            <h3>文本分析</h3>
-            <p>词性标注：${results.text_analysis.pos_tagging}</p>
-            <p>实体识别：${results.text_analysis.named_entities}</p>
-            <p>文档摘要：${results.text_analysis.summary}</p>
-        `;
-        resultsContainer.appendChild(textResults);
+        resultsContainer.innerHTML = `
+                <div class="analysis-results">
+                    <h3>文本分析结果</h3>
+                    <div class="pos-tagging-results">
+                        <h4>词性标注 <i class="fas fa-info-circle" title="名词-红色&#10;动词-绿色&#10;形容词-蓝色&#10;副词-黄色&#10;代词-紫色&#10;数词-棕色&#10;量词-灰色&#10;介词-棕色&#10;连词-灰色&#10;助词-深灰色&#10;标点-黑色"></i></h4>
+                        <div class="result-content">${results.text_analysis.pos_tagging}</div>
+                    </div>
+                    <div class="named-entities-results">
+                        <h4>实体识别 <i class="fas fa-info-circle" title="疾病-红色&#10;症状-绿色&#10;药品-蓝色&#10;器官-黄色&#10;治疗-紫色&#10;科室-棕色&#10;检查-灰色"></i></h4>
+                        <div class="result-content">${results.text_analysis.named_entities}</div>
+                    </div>
+                    <div class="summary-results">
+                        <h4>文本摘要</h4>
+                        <div class="result-content">${results.text_analysis.summary}</div>
+                    </div>
+                </div>
+                        `;
     }
 
     // 显示词云图
@@ -212,3 +226,118 @@ function getCookie(name) {
     }
     return cookieValue;
 }
+
+// 处理分析结果的显示
+function displayAnalysisResults(results) {
+    if (!results || !results.text_analysis) return;
+
+    const textAnalysis = results.text_analysis;
+    let analysisHtml = '';
+
+    // 词性标注结果
+    if (textAnalysis.pos_tagging) {
+        analysisHtml += '<div class="analysis-section">';
+        analysisHtml += '<h4>词性标注结果：</h4>';
+        analysisHtml += '<div class="pos-result">' + textAnalysis.pos_tagging + '</div>';
+        analysisHtml += '</div>';
+    }
+
+    // 实体识别结果
+    if (textAnalysis.entity_tagging) {
+        analysisHtml += '<div class="analysis-section">';
+        analysisHtml += '<h4>实体识别结果：</h4>';
+        analysisHtml += '<div class="entity-result">' + textAnalysis.entity_tagging + '</div>';
+        analysisHtml += '</div>';
+    }
+
+    // 文本摘要结果
+    if (textAnalysis.summary) {
+        analysisHtml += '<div class="analysis-section">';
+        analysisHtml += '<h4>文本摘要：</h4>';
+        analysisHtml += '<div class="summary-result">' + textAnalysis.summary + '</div>';
+        analysisHtml += '</div>';
+    }
+
+    // 如果有分析结果，添加到聊天窗口
+    if (analysisHtml) {
+        var answer_html = '<div class="item item-left">' +
+            '<div class="avatar avatar-bot"></div>' +
+            '<div class="bubble bubble-left analysis-results">' + analysisHtml + '</div>' +
+            '</div>';
+        $('.content').append(answer_html);
+    }
+}
+
+// 点击发送按钮，发请求
+$("#chatbotsendbtn").on("click", function () {
+    var searchtext = $.trim($('#chattextarea').val());
+    if (searchtext === "") {
+        alert("请输入您的问题");
+        return;
+    }
+
+    // 将问题添加到聊天窗口的末尾
+    var question_html = '<div class="item item-right">' +
+        '<div class="bubble bubble-right">' + searchtext + '</div>' +
+        '<div class="avatar avatar-user"></div>' +
+        '</div>';
+    $('.content').append(question_html);
+
+    // 清空问题文本框
+    $('#chattextarea').val('');
+    $('#chattextarea').focus();
+
+    // 滚动条置底
+    var contentDiv = $('.content');
+    contentDiv.scrollTop(contentDiv.prop("scrollHeight"));
+
+    // 处理不同类型的操作
+    var opType = "normal"; // 默认为普通问答
+    if (searchtext.includes("词性标注：")) {
+        opType = "pos";
+    } else if (searchtext.includes("实体识别：")) {
+        opType = "entity";
+    } else if (searchtext.includes("文本摘要：")) {
+        opType = "summary";
+    } else if (searchtext.includes("文本分析：")) {
+        opType = "analysis";
+    }
+
+    $.ajax({
+        type: "POST",
+        url: "/chat_api",
+        contentType: "application/json",
+        data: JSON.stringify({
+            message: searchtext
+        }),
+        dataType: "json",
+        beforeSend: function () {
+            $("#chatbotsendbtn").attr("disabled", "disabled");
+        },
+        complete: function () {
+            $("#chatbotsendbtn").removeAttr("disabled");
+        },
+        success: function (result) {
+            // 显示分析结果
+            if (result.results && result.results.text_analysis) {
+                displayAnalysisResults(result.results);
+            }
+
+            // 显示回答（如果是普通问答）
+            if (opType === "normal" && result.response) {
+                var answer_html = '<div class="item item-left">' +
+                    '<div class="avatar avatar-bot"></div>' +
+                    '<div class="bubble bubble-left">' + result.response + '</div>' +
+                    '</div>';
+                $('.content').append(answer_html);
+            }
+
+            // 滚动到底部
+            contentDiv.scrollTop(contentDiv.prop("scrollHeight"));
+        },
+        error: function (xhr, status, error) {
+            console.error("Error:", error);
+            alert("请求失败，请稍后重试");
+        }
+    });
+});

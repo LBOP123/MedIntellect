@@ -145,10 +145,7 @@ function displayAnalysisResults(results) {
         document.querySelector('.summary-results .result-content').innerHTML = textAnalysis.summary;
     }
 
-    // 显示布局分析结果
-    if (results.layout) {
-        document.querySelector('.layout-results .result-content').innerHTML = results.layout;
-    }
+
 }
 
 // 下载结果处理

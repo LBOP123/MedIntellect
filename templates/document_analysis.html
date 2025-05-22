@@ -30,15 +30,12 @@
                 <input type="checkbox" name="analysis_type" value="summary" checked>
                 文档摘要
             </label>
-            <label class="option-item">
-                <input type="checkbox" name="analysis_type" value="layout" checked>
-                布局分析
-            </label>
+
         </div>
     </div>
 
     <div class="batch-upload-section">
-        <h3>批量文本分析</h3>
+        <h3>上传csv文件</h3>
         <div class="file-upload">
             <p>上传数据集文件（支持CSV格式，文件需包含content列）</p>
             <input type="file" id="batch-upload" accept=".csv">
@@ -50,7 +47,7 @@
         <h3>分析结果</h3>
         <div class="results-tabs">
             <button class="tab-button active" data-tab="text-analysis">文本分析</button>
-            <button class="tab-button" data-tab="layout-analysis">布局分析</button>
+
             <button class="tab-button" data-tab="clustering">文本聚类</button>
         </div>
 
@@ -69,12 +66,6 @@
             </div>
         </div>
 
-        <div class="tab-content" id="layout-analysis">
-            <div class="layout-results">
-                <h4>文档布局分析</h4>
-                <div class="result-content"></div>
-            </div>
-        </div>
 
         <div class="tab-content" id="clustering">
             <div class="clustering-results">
