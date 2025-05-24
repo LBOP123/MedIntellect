@@ -58,16 +58,16 @@ def chat_api(request):
         op_type = 'normal'  # 默认为普通问答
         if '词性标注' in question:
             op_type = 'pos'
-            question = question.replace('词性标注', '').strip()
+            question = question.replace('词性标注：', '').strip()
         elif '实体识别' in question:
             op_type = 'entity'
-            question = question.replace('实体识别', '').strip()
+            question = question.replace('实体识别：', '').strip()
         elif '文本摘要' in question:
             op_type = 'summary'
-            question = question.replace('文本摘要', '').strip()
+            question = question.replace('文本摘要：', '').strip()
         elif '文本分析' in question:
             op_type = 'analysis'
-            question = question.replace('文本分析', '').strip()
+            question = question.replace('文本分析：', '').strip()
 
         # 初始化数据处理器
         from .data_processor import DataProcessor
@@ -77,7 +77,7 @@ def chat_api(request):
         processed_text = processor.process_text(question)
         
         # 提取关键词（已去除停用词）
-        keywords = processor.extract_keywords(question, topK=5)
+        keywords = processor.extract_keywords(question, topK=2)
 
         # 词性标注
         pos_tags = []
@@ -94,6 +94,7 @@ def chat_api(request):
             'u': '#495057',   # 助词-深灰色
             'w': '#212529'    # 标点-黑色
         }
+        
         pos_result = []
         for word, flag in jieba.posseg.cut(question):
             color = pos_colors.get(flag[0], '#212529')
@@ -127,44 +128,97 @@ def chat_api(request):
         # 生成文档摘要（这里使用关键词组合作为简单摘要）
         summary = '。'.join([kw for kw in keywords])
 
-        # 获取所有问答数据用于构建索引
-        all_qa = MedicalQA.objects.all()
-        questions = [qa.question for qa in all_qa]
-        
-        # 构建问题索引
-        tfidf_matrix = processor.build_index(questions)
-        
-        # 搜索相似问题
-        if tfidf_matrix is not None:
-            top_indices, similarities = processor.search_similar(question, tfidf_matrix)
-            if len(top_indices) > 0:
-                qa_results = all_qa[int(top_indices[0])]
-                response = qa_results.answer
-            else:
-                response = "抱歉，我暂时无法回答这个问题。"
-        else:
-            query = Q()
-            matched_keywords = 0
-            for keyword in keywords:
-                query |= Q(keywords__contains=keyword)
-                matched_keywords += 1
-                if matched_keywords >= 3:
-                    break
+        # 根据操作类型设置响应内容
+        response = ""
+        if op_type == 'normal':
+            # 首先尝试关键词匹配，这样更快
+            if keywords:
+                qa_results = MedicalQA.objects.filter(keywords__contains=keywords[0]).order_by('-created_at').first()
+                if qa_results:
+                    response = qa_results.answer
+                else:
+                    # 如果关键词匹配失败，再尝试相似度匹配
+                    all_qa = MedicalQA.objects.all()[:1000]  # 限制数量提高性能
+                    questions = [qa.question for qa in all_qa]
+                    
+                    # 构建问题索引
+                    tfidf_matrix = processor.build_index(questions)
+                    
+                    # 搜索相似问题，降低相似度要求
+                    if tfidf_matrix is not None:
+                        top_indices, similarities = processor.search_similar(question, tfidf_matrix, top_k=1)
+                        if len(top_indices) > 0 and similarities[0] > 0.3:  # 降低相似度阈值
+                            qa_results = all_qa[int(top_indices[0])]
+                            response = qa_results.answer
+                        else:
+                            response = "抱歉，我暂时无法回答这个问题。"
+                    else:
+                        response = "抱歉，我暂时无法回答这个问题。"
 
-            qa_results = MedicalQA.objects.filter(query).order_by('-created_at').first()
-            response = qa_results.answer if qa_results else "抱歉，我暂时无法回答这个问题。"
+            # 更新系统统计数据
+            stats = SystemStats.objects.first() or SystemStats.objects.create()
+            stats.qa_count += 1
+            stats.save()
+
+        elif op_type == 'pos':
+            response = "词性标注已完成，请查看下方标注结果。"
+        elif op_type == 'entity':
+            response = "实体识别已完成，请查看下方识别结果。"
+        elif op_type == 'summary':
+            response = "文本摘要已生成，请查看下方摘要内容。"
+        elif op_type == 'analysis':
+            response = "文本分析已完成，请查看下方分析结果。"
 
         # 根据操作类型返回不同的结果
         text_analysis = {}
         if op_type == 'pos':
+            # 只进行词性标注
+            pos_result = []
+            for word, flag in jieba.posseg.cut(question):
+                color = pos_colors.get(flag[0], '#212529')
+                pos_result.append(f'<span style="color: {color}" title="{flag}">{word}</span>')
             text_analysis['pos_tagging'] = ' '.join(pos_result)
         elif op_type == 'entity':
+            # 只进行实体识别
+            entity_result = []
+            for word, flag in jieba.posseg.cut(question):
+                entity_type = None
+                for type_name, rule in medical_rules.items():
+                    if any(kw in word for kw in rule['keywords']):
+                        entity_type = type_name
+                        entity_result.append(f'<span style="color: {rule["color"]}" title="{type_name}">{word}</span>')
+                        break
+                if not entity_type:
+                    entity_result.append(word)
             text_analysis['entity_tagging'] = ' '.join(entity_result)
         elif op_type == 'summary':
+            # 只生成文本摘要
+            summary = '。'.join([kw for kw in keywords])
             text_analysis['summary'] = summary
         elif op_type == 'analysis':
+            # 进行完整的文本分析
+            # 词性标注
+            pos_result = []
+            for word, flag in jieba.posseg.cut(question):
+                color = pos_colors.get(flag[0], '#212529')
+                pos_result.append(f'<span style="color: {color}" title="{flag}">{word}</span>')
             text_analysis['pos_tagging'] = ' '.join(pos_result)
+            
+            # 实体识别
+            entity_result = []
+            for word, flag in jieba.posseg.cut(question):
+                entity_type = None
+                for type_name, rule in medical_rules.items():
+                    if any(kw in word for kw in rule['keywords']):
+                        entity_type = type_name
+                        entity_result.append(f'<span style="color: {rule["color"]}" title="{type_name}">{word}</span>')
+                        break
+                if not entity_type:
+                    entity_result.append(word)
             text_analysis['entity_tagging'] = ' '.join(entity_result)
+            
+            # 文本摘要
+            summary = '。'.join([kw for kw in keywords])
             text_analysis['summary'] = summary
 
         return JsonResponse({

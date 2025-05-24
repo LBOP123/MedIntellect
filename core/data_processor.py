@@ -25,6 +25,10 @@ class DataProcessor:
         self.stopwords = self.load_stopwords()
         # 初始化TF-IDF向量化器
         self.vectorizer = TfidfVectorizer()
+        # 缓存TF-IDF矩阵和问题列表
+        self.cached_tfidf_matrix = None
+        self.cached_questions = None
+        self.cache_size = 1000  # 缓存的问题数量限制
 
     def load_stopwords(self):
         """加载停用词表"""
@@ -59,10 +63,25 @@ class DataProcessor:
         return keywords
 
     def build_index(self, questions):
-        """构建文本索引"""
+        """构建文本索引，使用缓存机制"""
+        # 如果问题列表与缓存的相同，直接返回缓存的矩阵
+        if (self.cached_questions is not None and 
+            len(questions) <= self.cache_size and 
+            questions == self.cached_questions):
+            return self.cached_tfidf_matrix
+
         # 将问题文本转换为TF-IDF向量
         try:
+            # 限制问题数量
+            if len(questions) > self.cache_size:
+                questions = questions[:self.cache_size]
+            
             tfidf_matrix = self.vectorizer.fit_transform(questions)
+            
+            # 更新缓存
+            self.cached_tfidf_matrix = tfidf_matrix
+            self.cached_questions = questions
+            
             return tfidf_matrix
         except Exception as e:
             print(f"构建索引时发生错误：{str(e)}")
