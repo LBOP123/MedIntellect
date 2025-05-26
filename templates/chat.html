@@ -19,9 +19,31 @@
         <div class="chat-input-wrapper">
             <textarea id="chat-input" placeholder="请输入您的问题...&#10;提示词：1)词性标注：2)实体识别：3)文本摘要：4)文本分析："></textarea>
             <div class="chat-controls">
-                <input type="file" id="file-upload" accept=".txt,.doc,.docx,.pdf,.png,.jpg,.jpeg">
-                <label for="file-upload" class="upload-button" title="上传文件"></label>
-                <button id="send-button" onclick="sendMessage()">发送</button>
+                <div class="upload-buttons">
+                    <input type="file" id="file-upload" accept=".txt,.doc,.docx,.pdf">
+                    <label for="file-upload" class="upload-button" title="上传文件">
+                        <i class="fas fa-file"></i>
+                    </label>
+                    
+                    <input type="file" id="image-upload" accept=".jpg,.jpeg,.png,.bmp,.gif">
+                    <label for="image-upload" class="upload-button image-upload-btn" title="上传图片">
+                        <i class="fas fa-image"></i>
+                    </label>
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="send-button" onclick="sendMessage()">发送</button>
+                    <button id="vqa-button" onclick="startVQA()" disabled title="请先上传图片">视觉问答</button>
+                </div>
+            </div>
+            
+            <!-- 图片预览区域 -->
+            <div id="image-preview" class="image-preview" style="display: none;">
+                <div class="preview-header">
+                    <span>已上传图片：</span>
+                    <button id="remove-image" class="remove-btn">&times;</button>
+                </div>
+                <img id="preview-img" src="" alt="预览图片">
             </div>
         </div>
     </div>
@@ -30,4 +52,158 @@
         <!-- 分析结果将在这里显示 -->
     </div>
 </div>
+
+<style>
+/* 新增样式 */
+.chat-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+}
+
+.upload-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.upload-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #6c757d;
+}
+
+.upload-button:hover {
+    background-color: #e9ecef;
+    color: #495057;
+}
+
+.image-upload-btn {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+    color: #1565c0;
+}
+
+.image-upload-btn:hover {
+    background-color: #bbdefb;
+}
+
+#file-upload, #image-upload {
+    display: none;
+}
+
+#send-button, #vqa-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+#send-button {
+    background: var(--secondary-color);
+    color: white;
+}
+
+#send-button:hover {
+    background: #2980b9;
+}
+
+#vqa-button {
+    background: #4caf50;
+    color: white;
+}
+
+#vqa-button:hover:not(:disabled) {
+    background: #45a049;
+}
+
+#vqa-button:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* 图片预览样式 */
+.image-preview {
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    background-color: #f8f9fa;
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #6c757d;
+}
+
+.remove-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #dc3545;
+    cursor: pointer;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remove-btn:hover {
+    background-color: #dc3545;
+    color: white;
+    border-radius: 50%;
+}
+
+#preview-img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .chat-controls {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    
+    .upload-buttons {
+        justify-content: center;
+    }
+    
+    .action-buttons {
+        width: 100%;
+    }
+    
+    #send-button, #vqa-button {
+        flex: 1;
+    }
+}
+</style>
 {% endblock %}

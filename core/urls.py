@@ -9,6 +9,7 @@ urlpatterns = [
     
     # API endpoints
     path('api/chat/', views.chat_api, name='chat_api'),
+    path('api/visual_qa/', views.visual_qa_api, name='visual_qa_api'), 
     path('api/analyze-document/', views.analyze_document, name='analyze_document'),
     path('api/analyze-batch/', views.analyze_batch, name='analyze_batch'),
     path('api/upload/', views.upload_file, name='upload_file'),

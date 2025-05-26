@@ -56,11 +56,18 @@ pip install -r requirements.txt
 
 3. 配置数据库
 - 创建MySQL数据库
+```
+mysql -u root -e "CREATE DATABASE IF NOT EXISTS medintellect CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+```
 - 修改 `medintellect/settings.py` 中的数据库配置
 
 4. 数据库迁移
 ```bash
 python manage.py migrate
+```
+执行数据导入命令，将Data文件夹内的CSV文件数据导入到数据库中。
+```
+python manage.py import_data
 ```
 
 5. 创建超级用户（可选）

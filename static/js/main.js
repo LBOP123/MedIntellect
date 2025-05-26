@@ -3,13 +3,25 @@ const chatMessages = document.getElementById('chat-messages');
 const chatInput = document.getElementById('chat-input');
 const sendButton = document.getElementById('send-button');
 const fileUpload = document.getElementById('file-upload');
+const imageUpload = document.getElementById('image-upload');
+const vqaButton = document.getElementById('vqa-button');
 const dropZone = document.getElementById('drop-zone');
 const uploadIndicator = document.querySelector('.upload-indicator');
+const imagePreview = document.getElementById('image-preview');
+const previewImg = document.getElementById('preview-img');
+const removeImageBtn = document.getElementById('remove-image');
+
+// 全局变量
+let uploadedImageFile = null;
+let isVQAMode = false;
 
 // 事件监听
 document.addEventListener('DOMContentLoaded', function () {
     // 发送按钮点击事件
     sendButton.addEventListener('click', sendMessage);
+
+    // 视觉问答按钮点击事件
+    vqaButton.addEventListener('click', startVQA);
 
     // 输入框回车事件
     chatInput.addEventListener('keypress', function (e) {
@@ -26,6 +38,17 @@ document.addEventListener('DOMContentLoaded', function () {
             handleFileUpload(file);
         }
     });
+
+    // 图片上传事件
+    imageUpload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            handleImageUpload(file);
+        }
+    });
+
+    // 移除图片事件
+    removeImageBtn.addEventListener('click', removeImage);
 
     // 拖放文件处理 - 现在应用于整个聊天容器
     dropZone.addEventListener('dragover', (e) => {
@@ -51,7 +74,12 @@ document.addEventListener('DOMContentLoaded', function () {
         dropZone.classList.remove('drag-over');
         const file = e.dataTransfer.files[0];
         if (file) {
-            handleFileUpload(file);
+            // 根据文件类型决定处理方式
+            if (file.type.startsWith('image/')) {
+                handleImageUpload(file);
+            } else {
+                handleFileUpload(file);
+            }
         }
     });
 });
@@ -68,7 +96,13 @@ function addMessage(message, isUser = false) {
 
     const contentDiv = document.createElement('div');
     contentDiv.classList.add('message-content');
-    contentDiv.textContent = message;
+    
+    // 如果是HTML内容，直接设置innerHTML，否则设置textContent
+    if (message.includes('<')) {
+        contentDiv.innerHTML = message;
+    } else {
+        contentDiv.textContent = message;
+    }
 
     messageDiv.appendChild(avatarDiv);
     messageDiv.appendChild(contentDiv);
@@ -77,8 +111,79 @@ function addMessage(message, isUser = false) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// 发送消息
-// 发送消息
+// 图片上传处理
+async function handleImageUpload(file) {
+    // 验证文件类型
+    if (!file.type.startsWith('image/')) {
+        alert('请上传图片文件（JPG、PNG、GIF等）');
+        return;
+    }
+
+    // 验证文件大小（限制为5MB）
+    if (file.size > 5 * 1024 * 1024) {
+        alert('图片文件大小不能超过5MB');
+        return;
+    }
+
+    try {
+        // 显示预览
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImg.src = e.target.result;
+            imagePreview.style.display = 'block';
+            
+            // 保存文件引用
+            uploadedImageFile = file;
+            
+            // 启用视觉问答按钮
+            vqaButton.disabled = false;
+            vqaButton.title = '点击开始视觉问答';
+            
+            addMessage(`图片 "${file.name}" 上传成功！现在可以进行视觉问答了。`, false);
+        };
+        reader.readAsDataURL(file);
+        
+        addMessage(`正在上传图片: ${file.name}...`, true);
+        
+    } catch (error) {
+        console.error('Error uploading image:', error);
+        addMessage('图片上传失败，请重试。', false);
+    }
+}
+
+// 移除图片
+function removeImage() {
+    uploadedImageFile = null;
+    imagePreview.style.display = 'none';
+    previewImg.src = '';
+    vqaButton.disabled = true;
+    vqaButton.title = '请先上传图片';
+    isVQAMode = false;
+    
+    // 重置输入框提示
+    chatInput.placeholder = "请输入您的问题...\n提示词：1)词性标注：2)实体识别：3)文本摘要：4)文本分析：";
+    
+    addMessage('图片已移除。', false);
+}
+
+// 开始视觉问答
+function startVQA() {
+    if (isVQAMode) {
+        return;
+    }
+    if (!uploadedImageFile) {
+        alert('请先上传图片');
+        return;
+    }
+    
+    isVQAMode = true;
+    chatInput.placeholder = "请输入关于图片的问题...\n例如：这是什么？图片中有什么？描述一下图片内容。";
+    chatInput.focus();
+    
+    addMessage('视觉问答模式已启动！请输入关于图片的问题。', false);
+}
+
+// 发送消息（更新后支持视觉问答）
 async function sendMessage() {
     const message = chatInput.value.trim();
     if (!message) return;
@@ -87,13 +192,43 @@ async function sendMessage() {
     chatInput.value = '';
 
     try {
-        const response = await fetch('/api/chat/', {
+        let apiUrl = '/api/chat/';
+        let requestData = { message };
+        
+        // 如果是视觉问答模式且有上传的图片
+        if (isVQAMode && uploadedImageFile) {
+            apiUrl = '/api/visual_qa/';
+            
+            // 使用FormData发送图片和问题
+            const formData = new FormData();
+            formData.append('image', uploadedImageFile);
+            formData.append('question', message);
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: formData
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                addMessage(data.answer);
+            } else {
+                addMessage(`视觉问答失败：${data.error}`);
+            }
+            return;
+        }
+
+        // 普通文本问答
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
             },
-            body: JSON.stringify({ message })
+            body: JSON.stringify(requestData)
         });
 
         const data = await response.json();
@@ -136,7 +271,7 @@ async function sendMessage() {
     }
 }
 
-// 文件上传处理
+// 文件上传处理（原有功能保持不变）
 async function handleFileUpload(file) {
     // 显示上传中状态
     addMessage(`正在上传文件: ${file.name}...`, true);
@@ -226,118 +361,3 @@ function getCookie(name) {
     }
     return cookieValue;
 }
-
-// 处理分析结果的显示
-function displayAnalysisResults(results) {
-    if (!results || !results.text_analysis) return;
-
-    const textAnalysis = results.text_analysis;
-    let analysisHtml = '';
-
-    // 词性标注结果
-    if (textAnalysis.pos_tagging) {
-        analysisHtml += '<div class="analysis-section">';
-        analysisHtml += '<h4>词性标注结果：</h4>';
-        analysisHtml += '<div class="pos-result">' + textAnalysis.pos_tagging + '</div>';
-        analysisHtml += '</div>';
-    }
-
-    // 实体识别结果
-    if (textAnalysis.entity_tagging) {
-        analysisHtml += '<div class="analysis-section">';
-        analysisHtml += '<h4>实体识别结果：</h4>';
-        analysisHtml += '<div class="entity-result">' + textAnalysis.entity_tagging + '</div>';
-        analysisHtml += '</div>';
-    }
-
-    // 文本摘要结果
-    if (textAnalysis.summary) {
-        analysisHtml += '<div class="analysis-section">';
-        analysisHtml += '<h4>文本摘要：</h4>';
-        analysisHtml += '<div class="summary-result">' + textAnalysis.summary + '</div>';
-        analysisHtml += '</div>';
-    }
-
-    // 如果有分析结果，添加到聊天窗口
-    if (analysisHtml) {
-        var answer_html = '<div class="item item-left">' +
-            '<div class="avatar avatar-bot"></div>' +
-            '<div class="bubble bubble-left analysis-results">' + analysisHtml + '</div>' +
-            '</div>';
-        $('.content').append(answer_html);
-    }
-}
-
-// 点击发送按钮，发请求
-$("#chatbotsendbtn").on("click", function () {
-    var searchtext = $.trim($('#chattextarea').val());
-    if (searchtext === "") {
-        alert("请输入您的问题");
-        return;
-    }
-
-    // 将问题添加到聊天窗口的末尾
-    var question_html = '<div class="item item-right">' +
-        '<div class="bubble bubble-right">' + searchtext + '</div>' +
-        '<div class="avatar avatar-user"></div>' +
-        '</div>';
-    $('.content').append(question_html);
-
-    // 清空问题文本框
-    $('#chattextarea').val('');
-    $('#chattextarea').focus();
-
-    // 滚动条置底
-    var contentDiv = $('.content');
-    contentDiv.scrollTop(contentDiv.prop("scrollHeight"));
-
-    // 处理不同类型的操作
-    var opType = "normal"; // 默认为普通问答
-    if (searchtext.includes("词性标注：")) {
-        opType = "pos";
-    } else if (searchtext.includes("实体识别：")) {
-        opType = "entity";
-    } else if (searchtext.includes("文本摘要：")) {
-        opType = "summary";
-    } else if (searchtext.includes("文本分析：")) {
-        opType = "analysis";
-    }
-
-    $.ajax({
-        type: "POST",
-        url: "/chat_api",
-        contentType: "application/json",
-        data: JSON.stringify({
-            message: searchtext
-        }),
-        dataType: "json",
-        beforeSend: function () {
-            $("#chatbotsendbtn").attr("disabled", "disabled");
-        },
-        complete: function () {
-            $("#chatbotsendbtn").removeAttr("disabled");
-        },
-        success: function (result) {
-            // 显示分析结果
-            if (result.results && result.results.text_analysis) {
-                displayAnalysisResults(result.results);
-            }
-
-            // 显示回答（如果是普通问答）
-            if (opType === "normal" && result.response) {
-                var answer_html = '<div class="item item-left">' +
-                    '<div class="avatar avatar-bot"></div>' +
-                    '<div class="bubble bubble-left">' + result.response + '</div>' +
-                    '</div>';
-                $('.content').append(answer_html);
-            }
-
-            // 滚动到底部
-            contentDiv.scrollTop(contentDiv.prop("scrollHeight"));
-        },
-        error: function (xhr, status, error) {
-            console.error("Error:", error);
-            alert("请求失败，请稍后重试");
-        }
-    });
-});

@@ -17,7 +17,10 @@ import base64
 from PIL import Image
 import numpy as np
 import matplotlib
-matplotlib.use('Agg') 
+matplotlib.use('Agg')
+from io import BytesIO
+from django.conf import settings
+from .tiny_vqa import VQAProcessor
 
 def home(request):
     """首页视图"""
@@ -500,4 +503,92 @@ def download_results(request):
         traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
 
+# Initialize VQA processor (add this near the top after imports)
+vqa_processor = None
+
+def get_vqa_processor():
+    """获取或初始化 VQA 处理器"""
+    global vqa_processor
+    if vqa_processor is None:
+        try:
+            # 使用新的RAD模型路径
+            model_path = os.path.join(settings.BASE_DIR, 'static/refs/rad_vqa_model.pth')
+            if os.path.exists(model_path):
+                vqa_processor = VQAProcessor(model_path)
+                print("RAD VQA模型初始化成功")
+            else:
+                print(f"RAD模型文件未找到: {model_path}")
+                return None
+        except Exception as e:
+            print(f"初始化RAD VQA处理器时出错: {e}")
+            return None
+    return vqa_processor
+
+@csrf_exempt
+def visual_qa_api(request):
+    """处理视觉问答请求"""
+    if request.method != 'POST':
+        return JsonResponse({'error': '只支持POST请求'}, status=405)
+    
+    try:
+        # 检查图片和问题是否提供
+        if 'image' not in request.FILES or 'question' not in request.POST:
+            return JsonResponse({
+                'success': False,
+                'error': '请提供图片和问题'
+            })
         
+        image_file = request.FILES['image']
+        question = request.POST['question'].strip()
+        
+        if not question:
+            return JsonResponse({
+                'success': False,
+                'error': '问题不能为空'
+            })
+        
+        # 验证图片文件
+        if not image_file.content_type.startswith('image/'):
+            return JsonResponse({
+                'success': False,
+                'error': '请上传有效的图片文件'
+            })
+        
+        # 获取VQA处理器
+        processor = get_vqa_processor()
+        if processor is None:
+            return JsonResponse({
+                'success': False,
+                'error': 'VQA模型未加载，请检查模型文件'
+            })
+        
+        # 处理图片
+        try:
+            # 打开并预处理图片
+            image = Image.open(BytesIO(image_file.read())).convert('RGB')
+            
+            # 应用图片变换
+            image_tensor = processor.image_transform(image)
+            
+            # 从VQA模型获取答案
+            answer = processor.predict(image_tensor, question)
+            
+            return JsonResponse({
+                'success': True,
+                'answer': answer,
+                'question': question
+            })
+            
+        except Exception as e:
+            print(f"处理VQA请求时出错: {e}")
+            return JsonResponse({
+                'success': False,
+                'error': f'处理图片或问题时发生错误: {str(e)}'
+            })
+    
+    except Exception as e:
+        print(f"VQA API错误: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': '服务器内部错误，请稍后重试'
+        })
