@@ -669,20 +669,31 @@ def analyze_batch(request):
             text_combined = ' '.join(processed_texts)
             
             # 加载背景图像
-            background_image = np.array(Image.open('static/refs/hearts.png'))
+            background_image = process_image_mask('static/refs/R-C.jpg')
             # 定义字体路径变量
             font_path = 'static/refs/simsun.ttc'
-            
+            # 定义颜色列表
+            colors = ['#000000', '#FF0080', '#00FF80', '#8000FF', '#FF8000']  # 霓虹配色
+    
+            # 自定义颜色函数
+            def color_func(*args, **kwargs):
+                return colors[np.random.randint(0, len(colors))]
+
             wordcloud = WordCloud(
-                width=1200, 
-                height=600, 
+                width=800,  # 与mask尺寸保持一致
+                height=600,  # 与mask尺寸保持一致
                 background_color='white',
-                max_words=100,
-                prefer_horizontal=0.9,
-                colormap='viridis',
-                font_path=font_path,  # 字体路径
-                collocations=False,  # 避免重复词组
-                mask=background_image  # 使用背景图像
+                max_words=150,  # 减少词数，避免拥挤
+                prefer_horizontal=0.9,  # 调整水平偏好
+                color_func=color_func,  # 使用自定义颜色函数
+                font_path=font_path,
+                collocations=False,
+                mask=background_image,  # 使用处理后的mask
+                max_font_size=60,  # 限制最大字体大小
+                min_font_size=10,  # 设置最小字体大小
+                relative_scaling=0.5,  # 调整字体大小的相对缩放
+                scale=2,  # 提高清晰度
+                margin=10  # 设置边距
             ).generate(text_combined)
         
             # 保存词云图像
@@ -906,3 +917,24 @@ def download_results(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({'error': f'生成下载文件时发生错误: {str(e)}'}, status=500)
+
+def process_image_mask(image_path):
+        """处理图片作为mask"""
+        # 加载背景图像
+        background_image = Image.open(image_path)
+        
+        # 转换为灰度图
+        background_gray = background_image.convert('L')
+        
+        # 调整大小
+        background_gray = background_gray.resize((800, 600))
+        
+        # 转换为numpy数组
+        mask_array = np.array(background_gray)
+        
+        # 二值化处理：将图像转换为黑白两色
+        # 白色区域(值大的区域)用于放置文字，黑色区域(值小的区域)不放置文字
+        threshold = 128  # 阈值，可以调整
+        mask_array = np.where(mask_array > threshold, 255, 0).astype(np.uint8)
+        
+        return mask_array
