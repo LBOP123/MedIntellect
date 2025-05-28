@@ -64,10 +64,12 @@ class AnalysisResult(models.Model):
         return f'{self.document.title} - {self.result_type}'
 
 class SystemStats(models.Model):
-    """系统统计数据模型"""
-    qa_count = models.IntegerField('问答数量', default=0)
-    doc_count = models.IntegerField('文档处理数量', default=0)
-    accuracy = models.FloatField('系统准确率', default=0.0)
+    """系统统计信息"""
+    qa_count = models.IntegerField(default=0)  # 问答次数
+    doc_count = models.IntegerField(default=0)  # 文档处理数
+    accuracy = models.FloatField(default=0.0)  # 文本问答准确率
+    vqa_accuracy = models.FloatField(default=0.0)  # 视觉问答准确率
+    overall_accuracy = models.FloatField(default=0.0)  # 综合准确率
     updated_at = models.DateTimeField('更新时间', auto_now=True)
 
     class Meta:

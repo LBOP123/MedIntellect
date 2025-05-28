@@ -35,7 +35,9 @@ def home(request):
     context = {
         'qa_count': stats.qa_count,
         'doc_count': stats.doc_count,
-        'accuracy': round(stats.accuracy, 2)
+        'accuracy': round(stats.accuracy, 2),
+        'vqa_accuracy': round(stats.vqa_accuracy, 2),
+        'overall_accuracy': round(stats.overall_accuracy, 2)
     }
     return render(request, 'home.html', context)
 
@@ -234,6 +236,84 @@ def chat_api(request):
                 'op_type': op_type,
                 'text_analysis': text_analysis
             }
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def evaluate_vqa(request):
+    """视觉问答系统评估API接口"""
+    if request.method != 'POST':
+        return JsonResponse({'error': '只支持POST请求'}, status=405)
+
+    try:
+        file = request.FILES.get('file')
+        if not file:
+            return JsonResponse({'error': '未上传文件'}, status=400)
+
+        if not file.name.endswith('.csv'):
+            return JsonResponse({'error': '只支持CSV文件'}, status=400)
+
+        # 保存文件到临时目录
+        import tempfile
+        import os
+        temp_dir = tempfile.gettempdir()
+        temp_path = os.path.join(temp_dir, 'Medical_VQA_TestSet.csv')
+        
+        with open(temp_path, 'wb+') as destination:
+            for chunk in file.chunks():
+                destination.write(chunk)
+
+        # 评估视觉问答系统性能
+        from .vqa_evaluation import evaluate_vqa_performance
+        results = evaluate_vqa_performance(temp_path)
+
+        # 删除临时文件
+        os.remove(temp_path)
+
+        return JsonResponse({
+            'success': True,
+            'results': results
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def evaluate_qa(request):
+    """问答系统评估API接口"""
+    if request.method != 'POST':
+        return JsonResponse({'error': '只支持POST请求'}, status=405)
+
+    try:
+        file = request.FILES.get('file')
+        if not file:
+            return JsonResponse({'error': '未上传文件'}, status=400)
+
+        if not file.name.endswith('.csv'):
+            return JsonResponse({'error': '只支持CSV文件'}, status=400)
+
+        # 保存文件到临时目录
+        import tempfile
+        import os
+        temp_dir = tempfile.gettempdir()
+        temp_path = os.path.join(temp_dir, 'test3.csv')
+        
+        with open(temp_path, 'wb+') as destination:
+            for chunk in file.chunks():
+                destination.write(chunk)
+
+        # 评估问答系统性能
+        from .qa_evaluation import evaluate_qa_performance
+        results = evaluate_qa_performance(temp_path)
+
+        # 删除临时文件
+        os.remove(temp_path)
+
+        return JsonResponse({
+            'success': True,
+            'results': results
         })
 
     except Exception as e:

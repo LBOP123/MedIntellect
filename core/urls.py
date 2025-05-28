@@ -2,6 +2,8 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('api/evaluate_qa', views.evaluate_qa, name='evaluate_qa'),
+    path('api/evaluate_vqa', views.evaluate_vqa, name='evaluate_vqa'),
     path('', views.home, name='home'),
     path('chat/', views.chat, name='chat'),
     path('document-analysis/', views.document_analysis, name='document_analysis'),
