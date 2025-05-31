@@ -590,3 +590,184 @@ position: relative;
 .analysis-results h4 i:hover {
     color: var(--primary-color);
 }
+/* 新增样式 */
+.chat-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+}
+
+.upload-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.upload-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #6c757d;
+}
+
+.upload-button:hover {
+    background-color: #e9ecef;
+    color: #495057;
+}
+
+.image-upload-btn:hover {
+    background-color: #bbdefb;
+}
+
+.csv-upload-btn:hover {
+    background-color: #c8e6c9;
+}
+
+.vqa-csv-upload-btn:hover {
+    background-color: #bbdefb;
+}
+
+.evaluation-results {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 10px;
+}
+
+.evaluation-results h4 {
+    margin: 0 0 10px 0;
+    color: #2c3e50;
+}
+
+.evaluation-results ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.evaluation-results li {
+    margin: 5px 0;
+    color: #34495e;
+}
+
+.message-content.error {
+    color: #dc3545;
+    background-color: #fff5f5;
+}
+
+#file-upload, #image-upload, #csv-upload, #vqa-csv-upload {
+    display: none;
+}
+
+#send-button, #vqa-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+#send-button {
+    background: var(--secondary-color);
+    color: white;
+}
+
+#send-button:hover {
+    background: #2980b9;
+}
+
+#vqa-button {
+    background: #4caf50;
+    color: white;
+}
+
+#vqa-button:hover:not(:disabled) {
+    background: #45a049;
+}
+
+#vqa-button:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* 图片预览样式 */
+.image-preview {
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    background-color: #f8f9fa;
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #6c757d;
+}
+
+.remove-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #dc3545;
+    cursor: pointer;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remove-btn:hover {
+    background-color: #dc3545;
+    color: white;
+    border-radius: 50%;
+}
+
+#preview-img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .chat-controls {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    
+    .upload-buttons {
+        justify-content: center;
+    }
+    
+    .action-buttons {
+        width: 100%;
+    }
+    
+    #send-button, #vqa-button {
+        flex: 1;
+    }
+}

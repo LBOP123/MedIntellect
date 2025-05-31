@@ -433,3 +433,148 @@ function displayClusteringResults(results, info) {
         clusteringTab.click();
     }
 }
+// 文本问答CSV文件上传和评估处理
+document.getElementById('csv-upload').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // 显示上传中的消息
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message bot-message';
+    messageDiv.innerHTML = `
+        <div class="message-avatar">
+            <img src="/static/images/ai-avatar.svg" alt="AI头像">
+        </div>
+        <div class="message-content">
+            正在分析文本问答测试集数据，请稍候...
+        </div>
+    `;
+    document.getElementById('chat-messages').appendChild(messageDiv);
+
+    // 发送文件到服务器进行评估
+    fetch('/api/evaluate_qa', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const results = data.results;
+            // 显示评估结果
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'message bot-message';
+            resultDiv.innerHTML = `
+                <div class="message-avatar">
+                    <img src="/static/images/ai-avatar.svg" alt="AI头像">
+                </div>
+                <div class="message-content">
+                    <div class="evaluation-results">
+                        <h4>文本问答系统评估结果</h4>
+                        <ul>
+                            <li>系统准确率：${results.accuracy}%</li>
+                            <li>测试问题总数：${results.total_questions}</li>
+                            <li>成功匹配数：${results.matched_questions}</li>
+                            <li>平均相似度：${results.avg_similarity}%</li>
+                            <li>相似度阈值：${results.threshold}%</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            document.getElementById('chat-messages').appendChild(resultDiv);
+        } else {
+            throw new Error(data.error || '评估失败');
+        }
+    })
+    .catch(error => {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'message bot-message';
+        errorDiv.innerHTML = `
+            <div class="message-avatar">
+                <img src="/static/images/ai-avatar.svg" alt="AI头像">
+            </div>
+            <div class="message-content error">
+                评估过程出错：${error.message}
+            </div>
+        `;
+        document.getElementById('chat-messages').appendChild(errorDiv);
+    });
+
+    // 清除文件选择
+    e.target.value = '';
+});
+
+// 视觉问答CSV文件上传和评估处理
+document.getElementById('vqa-csv-upload').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // 显示上传中的消息
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message bot-message';
+    messageDiv.innerHTML = `
+        <div class="message-avatar">
+            <img src="/static/images/ai-avatar.svg" alt="AI头像">
+        </div>
+        <div class="message-content">
+            正在分析视觉问答测试集数据，请稍候...
+        </div>
+    `;
+    document.getElementById('chat-messages').appendChild(messageDiv);
+
+    // 发送文件到服务器进行评估
+    fetch('/api/evaluate_vqa', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const results = data.results;
+            // 显示评估结果
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'message bot-message';
+            resultDiv.innerHTML = `
+                <div class="message-avatar">
+                    <img src="/static/images/ai-avatar.svg" alt="AI头像">
+                </div>
+                <div class="message-content">
+                    <div class="evaluation-results">
+                        <h4>视觉问答系统评估结果</h4>
+                        <ul>
+                            <li>系统准确率：${results.vqa_accuracy}%</li>
+                            <li>测试问题总数：${results.total_questions}</li>
+                            <li>成功匹配数：${results.matched_questions}</li>
+                            <li>平均相似度：${results.avg_similarity}%</li>
+                            <li>相似度阈值：${results.threshold}%</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            document.getElementById('chat-messages').appendChild(resultDiv);
+        } else {
+            throw new Error(data.error || '评估失败');
+        }
+    })
+    .catch(error => {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'message bot-message';
+        errorDiv.innerHTML = `
+            <div class="message-avatar">
+                <img src="/static/images/ai-avatar.svg" alt="AI头像">
+                </div>
+            <div class="message-content error">
+                评估过程出错：${error.message}
+            </div>
+        `;
+        document.getElementById('chat-messages').appendChild(errorDiv);
+    });
+
+    // 清除文件选择
+    e.target.value = '';
+});
